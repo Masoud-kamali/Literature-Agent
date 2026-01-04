@@ -1,0 +1,67 @@
+# Example crontab configuration for Literature Agent
+#
+# To use:
+# 1. Edit paths below to match your setup
+# 2. Run: crontab -e
+# 3. Paste the desired schedule line(s)
+
+# ============================================================================
+# IMPORTANT: Ensure vLLM server is running before cron job executes!
+# Option 1: Run vLLM as systemd service (recommended)
+# Option 2: Start vLLM in persistent tmux/screen session
+# ============================================================================
+
+# Weekly run every Monday at 9:00 AM
+0 9 * * 1 cd /path/to/literature-agent && /usr/local/bin/poetry run python scripts/run_weekly.py >> logs/cron.log 2>&1
+
+# Alternative: Bi-weekly (every other Monday at 9:00 AM)
+# 0 9 * * 1 [ $(($(date +\%V) \% 2)) -eq 0 ] && cd /path/to/literature-agent && /usr/local/bin/poetry run python scripts/run_weekly.py >> logs/cron.log 2>&1
+
+# Daily run at 8:00 AM (for very active monitoring, with --days 1)
+# 0 8 * * * cd /path/to/literature-agent && /usr/local/bin/poetry run python scripts/run_weekly.py --days 1 >> logs/cron.log 2>&1
+
+# Monthly backfill on 1st of each month at 2:00 AM
+# 0 2 1 * * cd /path/to/literature-agent && /usr/local/bin/poetry run python scripts/backfill.py --days 30 >> logs/backfill.log 2>&1
+
+# ============================================================================
+# Environment Variables (if not using .env file)
+# ============================================================================
+# VLLM_BASE_URL=http://localhost:8000/v1
+# VLLM_MODEL_NAME=meta-llama/Llama-3.1-8B-Instruct
+# OPENALEX_MAILTO=your.email@example.edu.au
+
+# To set environment variables in crontab, add them before commands:
+# 0 9 * * 1 VLLM_BASE_URL=http://localhost:8000/v1 OPENALEX_MAILTO=you@example.edu.au cd /path/to/literature-agent && /usr/local/bin/poetry run python scripts/run_weekly.py >> logs/cron.log 2>&1
+
+# ============================================================================
+# Systemd Service for vLLM (Recommended)
+# ============================================================================
+# Create /etc/systemd/system/vllm.service:
+#
+# [Unit]
+# Description=vLLM OpenAI-compatible Server
+# After=network.target
+#
+# [Service]
+# Type=simple
+# User=youruser
+# WorkingDirectory=/home/youruser
+# Environment="CUDA_VISIBLE_DEVICES=0"
+# ExecStart=/usr/bin/python3 -m vllm.entrypoints.openai.api_server \
+#   --model meta-llama/Llama-3.1-8B-Instruct \
+#   --host 0.0.0.0 \
+#   --port 8000 \
+#   --dtype auto \
+#   --max-model-len 4096 \
+#   --gpu-memory-utilization 0.9
+# Restart=always
+# RestartSec=10
+#
+# [Install]
+# WantedBy=multi-user.target
+#
+# Then:
+# sudo systemctl daemon-reload
+# sudo systemctl enable vllm
+# sudo systemctl start vllm
+# sudo systemctl status vllm
