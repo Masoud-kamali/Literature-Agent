@@ -116,27 +116,31 @@ Environment Variables (via .env or export):
             max_results=args.max_results,
         )
 
-        if not results:
-            logger.info("No papers processed this run")
+        paper_results = results.get("papers", [])
+        reddit_results = results.get("reddit_posts", [])
+        
+        if not paper_results and not reddit_results:
+            logger.info("No papers or Reddit posts processed this run")
             return 0
 
         # Write outputs
         writer = OutputWriter()
-        output_paths = writer.write_all(results)
+        output_paths = writer.write_all(paper_results, reddit_results)
 
         logger.info(f"Outputs written to: {output_paths['markdown_report'].parent}")
 
         # LinkedIn publishing
         if not args.no_publish:
             publisher = LinkedInPublisher()
-            publisher.publish(results)
+            all_results = paper_results + reddit_results
+            publisher.publish(all_results)
 
             if settings.linkedin_dry_run:
                 publisher.print_instructions()
 
         logger.info("=" * 80)
         logger.info("Run complete!")
-        logger.info(f"Processed: {len(results)} papers")
+        logger.info(f"Processed: {len(paper_results)} papers, {len(reddit_results)} Reddit posts")
         logger.info(f"Markdown report: {output_paths['markdown_report']}")
         logger.info("=" * 80)
 

@@ -33,7 +33,7 @@ class Settings(BaseSettings):
         default="meta-llama/Llama-3.1-8B-Instruct",
         description="Model name as configured in vLLM server",
     )
-    vllm_temperature: float = Field(default=0.7, ge=0.0, le=2.0)
+    vllm_temperature: float = Field(default=0.3, ge=0.0, le=2.0)
     vllm_max_tokens: int = Field(default=1024, ge=64, le=4096)
     vllm_timeout: int = Field(default=120, description="Timeout in seconds for LLM calls")
 
@@ -51,6 +51,18 @@ class Settings(BaseSettings):
     cvf_venues: List[str] = Field(
         default=["CVPR", "ICCV", "ECCV"], description="CVF venues to monitor"
     )
+
+    # Reddit settings
+    reddit_base_url: str = "https://www.reddit.com"
+    reddit_subreddits: List[str] = Field(
+        default=["PlayCanvas", "GaussianSplatting"],
+        description="Subreddits to monitor for tools and discussions",
+    )
+    reddit_user_agent: str = Field(
+        default="Literature-Agent/1.0 (Research paper monitoring)",
+        description="User agent for Reddit API",
+    )
+    reddit_delay: float = Field(default=2.0, description="Delay between Reddit requests (seconds)")
 
     # Search keywords for 3D Gaussian Splatting
     search_keywords: List[str] = Field(
@@ -80,6 +92,12 @@ class Settings(BaseSettings):
         default=0.1, description="Delay between OpenAlex requests (seconds)"
     )
     cvf_delay: float = Field(default=2.0, description="Delay between CVF page requests (seconds)")
+    
+    # Output format settings
+    output_format: str = Field(
+        default="2_papers_1_tool",
+        description="Format for LinkedIn posts: '2_papers_1_tool' or '3_papers'",
+    )
 
     # LinkedIn settings
     linkedin_dry_run: bool = Field(

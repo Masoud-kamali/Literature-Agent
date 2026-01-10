@@ -2,6 +2,8 @@
 
 This document contains all prompts used by the literature agent. All prompts are defined in [`src/llm/prompts.py`](src/llm/prompts.py).
 
+**Key Updates**: Prompts now enforce 3-sentence flowing paragraphs with smooth transitions and precise metrics. No "We/Our" language, starts with paper name, includes specific results.
+
 ---
 
 ## System Prompts
@@ -28,19 +30,19 @@ You are a rigorous academic reviewer. Your role is to critique generated text fo
 
 ### 1. Abstract Rewrite Prompt
 
-**Purpose**: Generate technical abstract rewrite (1 paragraph, ~100-150 words)
+**Purpose**: Generate concise 3-sentence description in ONE flowing paragraph (~200-300 chars)
 
 **Template**:
 ```
-Given the paper metadata and abstract below, write a technical abstract rewrite in one paragraph.
+Write EXACTLY 3 short sentences about this paper in ONE PARAGRAPH.
 
 Requirements:
-- Use Australian English spelling and grammar
-- Maintain academic tone
-- Highlight the key technical contribution
-- Be concise (approximately 100-150 words)
-- Do NOT add information not present in the original abstract
-- Focus on methodology and results
+- EXACTLY 3 sentences in ONE flowing paragraph (8-12 words each)
+- Start with paper name, NEVER use "We" or "Our" or "This paper"
+- Make it punchy and attractive with smooth transitions
+- Sentence 1: What innovation does (paper name + problem)
+- Sentence 2: How method works (use transition: "The approach...", "By...")
+- Sentence 3: PRECISE results with metrics/improvements (not vague!)
 
 Paper Title: {title}
 Authors: {authors}

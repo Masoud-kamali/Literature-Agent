@@ -2,6 +2,8 @@
 
 Get up and running with the Literature Agent in 5 minutes.
 
+**What it does**: Automatically finds 2 research papers + 1 community tool about 3D Gaussian Splatting, generates attractive LinkedIn-ready descriptions with smooth flow and precise metrics.
+
 ## Prerequisites
 
 - Linux GPU server with CUDA
@@ -52,24 +54,42 @@ curl http://localhost:8000/v1/models
 ## Run the Agent
 
 ```bash
-# Run with defaults (last 7 days)
+# Run with defaults (2 papers + 1 tool from last 7 days)
 poetry run python scripts/run_weekly.py
 
 # Or use Make
 make run
+
+# Custom date range
+poetry run python scripts/run_weekly.py --days 14
+
+# Clear ledger for fresh run (testing)
+python scripts/clear_ledger.py
 ```
+
+**What happens**:
+1. Fetches 2 papers from arXiv/OpenAlex/CVF
+2. Fetches 1 tool from Reddit (r/PlayCanvas, r/GaussianSplatting)
+3. Generates 3-sentence descriptions with smooth transitions
+4. Reflection agent improves quality (Critic → Reviser)
+5. Saves to `output/week_YYYY_MM_DD/`
 
 ## Check Outputs
 
 Results are in `output/week_YYYY_MM_DD/`:
 
 ```bash
-# View markdown report
+# View markdown report (LinkedIn post included)
 cat output/week_*/weekly_report.md
 
-# List generated JSONs
+# List generated JSONs (2 papers + 1 Reddit post)
 ls output/week_*/*.json
 ```
+
+**Output format**: Each item gets a 3-sentence flowing paragraph:
+- Sentence 1: Innovation/problem (starts with paper name)
+- Sentence 2: Method (smooth transition: "The approach...")
+- Sentence 3: Precise results (includes metrics: "30% fewer artifacts")
 
 ## Schedule Weekly Runs
 
@@ -112,10 +132,24 @@ poetry run python scripts/run_weekly.py --days 14 --max_results 100
 - Increase `--days` parameter
 - Verify search keywords in `src/config.py`
 
+## Configuration
+
+**Change output format** (`.env` or `src/config.py`):
+```bash
+OUTPUT_FORMAT=2_papers_1_tool   # Default: 2 papers + 1 tool
+# or
+OUTPUT_FORMAT=3_papers           # 3 papers only (no Reddit)
+```
+
+**Change subreddits**:
+```bash
+REDDIT_SUBREDDITS=["PlayCanvas", "GaussianSplatting", "YourSubreddit"]
+```
+
 ## Next Steps
 
 - Read full [README.md](README.md) for detailed configuration
-- View [EXAMPLE_OUTPUT.md](EXAMPLE_OUTPUT.md) for sample outputs
+- Check [REDDIT_FEATURE.md](REDDIT_FEATURE.md) for Reddit integration details
 - Customise prompts in `src/llm/prompts.py`
 - Adjust search keywords in `src/config.py`
 

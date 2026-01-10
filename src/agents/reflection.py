@@ -154,15 +154,16 @@ class ReflectionAgent:
 
     async def _reviser_node(self, state: ReflectionState) -> ReflectionState:
         """
-        Reviser node: apply critique to produce revised outputs.
+        Reviser node: aggressively shorten and make descriptions interactive.
+        Focus on conciseness, engagement, and proper formatting.
 
         Args:
             state: Current reflection state
 
         Returns:
-            Updated state with revised outputs
+            Updated state with SHORT, INTERACTIVE revised outputs
         """
-        logger.info("Reflection: Running reviser node")
+        logger.info("Reflection: Running reviser node (aggressive shortening + interactivity)")
 
         user_prompt = REVISER_PROMPT.format(
             title=state["title"],
@@ -176,12 +177,12 @@ class ReflectionAgent:
             revision_actions="\n".join(f"- {a}" for a in state["revision_actions"]),
         )
 
-        # Generate revised outputs
+        # Generate revised outputs with lower temperature for consistency
         revised_text = await self.llm_client.generate_with_system(
             system_prompt=SYSTEM_PROMPT,
             user_prompt=user_prompt,
-            temperature=settings.vllm_temperature,
-            max_tokens=2048,
+            temperature=0.3,  # Lower temperature for more controlled output
+            max_tokens=1024,  # Reduced from 2048 to encourage brevity
         )
 
         # Parse JSON response
@@ -201,17 +202,29 @@ class ReflectionAgent:
 
             revised_data = json.loads(json_str)
 
-            state["abstract_rewrite"] = revised_data.get(
-                "abstract_rewrite", state["abstract_rewrite"]
+            # Get revised content
+            revised_abstract = revised_data.get("abstract_rewrite", state["abstract_rewrite"])
+            revised_problem = revised_data.get("problem_solved", state["problem_solved"])
+            
+            # AGGRESSIVE POST-PROCESSING for interactivity and conciseness
+            revised_abstract = self._make_interactive_and_short(
+                revised_abstract, 
+                state["title"],
+                max_lines=3
             )
-            state["problem_solved"] = revised_data.get(
-                "problem_solved", state["problem_solved"]
+            revised_problem = self._make_interactive_and_short(
+                revised_problem,
+                state["title"],
+                max_lines=1
             )
+
+            state["abstract_rewrite"] = revised_abstract
+            state["problem_solved"] = revised_problem
             state["linkedin_post"] = revised_data.get(
                 "linkedin_post", state["linkedin_post"]
             )
 
-            logger.info("Revision complete")
+            logger.info("Revision complete (shortened and made interactive)")
 
         except (json.JSONDecodeError, AttributeError) as e:
             logger.warning(f"Failed to parse revised JSON: {e}. Keeping draft outputs.")
@@ -221,6 +234,84 @@ class ReflectionAgent:
         state["iteration"] += 1
 
         return state
+    
+    def _make_interactive_and_short(self, text: str, paper_title: str, max_lines: int) -> str:
+        """
+        Make text interactive and short with engaging verbs.
+        
+        Args:
+            text: Text to process
+            paper_title: Paper title for context
+            max_lines: Max number of lines
+            
+        Returns:
+            Interactive, shortened text
+        """
+        # Split into lines/sentences
+        if '\n' in text:
+            lines = [l.strip() for l in text.split('\n') if l.strip()]
+        else:
+            lines = [s.strip() + '.' for s in text.split('.') if s.strip()]
+        
+        lines = lines[:max_lines]
+        
+        # Make each line interactive and short
+        interactive_lines = []
+        short_title = ' '.join(paper_title.split(':')[0].split()[:2])
+        
+        # Interactive verbs to use
+        engaging_verbs = {
+            'introduces': 'tackles',
+            'presents': 'enables',
+            'proposes': 'achieves',
+            'addresses': 'solves',
+            'employs': 'uses',
+            'utilizes': 'leverages',
+            'demonstrates': 'shows',
+            'improves': 'boosts',
+            'enhances': 'amplifies',
+        }
+        
+        for i, line in enumerate(lines):
+            # Remove verbose starts
+            line = line.replace('We introduce ', '')
+            line = line.replace('We present ', '')
+            line = line.replace('We propose ', '')
+            line = line.replace('Our method ', 'Method ')
+            line = line.replace('Our approach ', 'Approach ')
+            
+            # Add paper name to first line if missing
+            if i == 0 and not line.startswith(short_title):
+                line = f"{short_title} {line[0].lower() + line[1:]}"
+            
+            # Replace boring verbs with engaging ones
+            for boring, engaging in engaging_verbs.items():
+                line = line.replace(f' {boring} ', f' {engaging} ')
+            
+            # Cut at 85 chars max
+            if len(line) > 85:
+                # Cut at comma or connector
+                for cut_word in [', ', ' by ', ' via ', ' through ', ' that ']:
+                    if cut_word in line[:80]:
+                        cut_pos = line[:80].rfind(cut_word)
+                        line = line[:cut_pos] + '.'
+                        break
+                else:
+                    line = line[:80].rsplit(' ', 1)[0] + '.'
+            
+            # Ensure period at end
+            if line and not line.endswith('.'):
+                line = line + '.'
+            
+            # Clean up
+            line = line.replace('..', '.')
+            line = ' '.join(line.split())
+            
+            if line and len(line) > 10:
+                interactive_lines.append(line)
+        
+        # Combine into one flowing paragraph (space-separated)
+        return ' '.join(interactive_lines[:max_lines])
 
     def _should_revise(self, state: ReflectionState) -> str:
         """

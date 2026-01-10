@@ -5,23 +5,48 @@ An autonomous research agent that discovers, analyzes, and generates publication
 ## Features
 
 - **Multi-source Retrieval**: Fetches papers from arXiv, OpenAlex, and CVF Open Access (CVPR/ICCV/ECCV)
+- **Reddit Integration**: Monitors r/PlayCanvas and r/GaussianSplatting for tools and community discussions
+- **Flexible Output Formats**: Generate posts with 3 papers OR 2 papers + 1 tool/post
 - **Local LLM Integration**: Uses vLLM with OpenAI-compatible API (Llama-3.1-8B-Instruct)
-- **Reflection Agent**: LangGraph-based critique and revision for quality control
+- **Two-Agent Reflection System**: 
+  - **Critic Agent**: Evaluates for conciseness, engagement, and precision
+  - **Reviser Agent**: Shortens text, adds engaging verbs, ensures smooth transitions
+- **Smart Descriptions**: 3-sentence flowing paragraphs with smooth transitions and precise metrics
 - **Smart Deduplication**: CSV ledger with unlimited retry until target papers found
-- **Australian English**: All outputs in Australian English with academic tone
-- **Combined LinkedIn Posts**: Generates single posts featuring 3 papers with structured format
+- **Australian English**: All outputs in Australian English with professional tone
+- **Combined LinkedIn Posts**: Generates publication-ready posts with attractive descriptions
 - **Production Ready**: Robust error handling, retry logic, and rate limiting
 
 ## Generated Outputs
 
-The agent generates a combined LinkedIn post titled "3D Gaussian Splatting — Weekly Literature Update" featuring 3 papers:
+The agent generates a combined LinkedIn post titled "3D Gaussian Splatting — Weekly Literature Update" featuring:
 
-For each paper:
-1. **Technical Abstract** (brief, 1-2 sentences highlighting key contribution)
-2. **Problem Addressed** (brief, 1-2 sentences explaining what problem it solves)
-3. **Metadata**: Title, authors, and URL
+**Default Format (2 papers + 1 tool):**
+- **2 research papers** from arXiv, OpenAlex, and CVF conferences
+- **1 relevant tool/discussion** from Reddit (r/PlayCanvas, r/GaussianSplatting)
 
-All outputs undergo reflection: a critic agent reviews for factuality, specificity, and style, then a reviser applies improvements if needed.
+**Alternative Format (3 papers):**
+- **3 research papers** from academic sources only
+
+For each item:
+1. **Concise Description** (3 flowing sentences with smooth transitions)
+   - Sentence 1: Innovation/problem addressed
+   - Sentence 2: Method/technique used (with transition)
+   - Sentence 3: Precise results with metrics
+2. **Metadata**: Title, authors/source, and URL
+
+### Quality Control Pipeline
+
+All outputs undergo **two-stage processing**:
+
+1. **Draft Generation**: Initial LLM output with strict prompts
+2. **Reflection Agent** (LangGraph-based):
+   - **Critic Node**: Reviews for factuality, conciseness, interactivity, and precision
+   - **Reviser Node**: Shortens text, adds engaging verbs, ensures smooth transitions, and includes specific metrics
+
+The result: **Smooth, engaging, LinkedIn-ready descriptions** with natural flow and precise results.
+
+See [REDDIT_FEATURE.md](REDDIT_FEATURE.md) for details on the Reddit integration.
 
 ## Architecture
 
@@ -32,7 +57,8 @@ literature-agent/
 │   ├── clients/               # Data source clients
 │   │   ├── arxiv_client.py
 │   │   ├── openalex_client.py
-│   │   └── cvf_client.py
+│   │   ├── cvf_client.py
+│   │   └── reddit_client.py   # Reddit integration
 │   ├── dedupe/                # Deduplication logic
 │   │   ├── ledger.py          # CSV ledger management
 │   │   └── normalise.py       # Title normalisation + hashing
@@ -89,6 +115,14 @@ OPENALEX_MAILTO=your.email@example.edu.au
 
 # LinkedIn (dry-run by default)
 LINKEDIN_DRY_RUN=true
+
+# Reddit settings
+REDDIT_SUBREDDITS=["PlayCanvas", "GaussianSplatting"]  
+OUTPUT_FORMAT=2_papers_1_tool  # or "3_papers" for papers only
+
+# LLM settings (lower temperature for consistency)
+VLLM_TEMPERATURE=0.3
+REFLECTION_TEMPERATURE=0.3
 
 # Logging
 LOG_LEVEL=INFO
@@ -196,25 +230,35 @@ After each run, outputs are saved to `output/week_YYYY_MM_DD/`:
 Example Combined LinkedIn Post Format:
 
 ```
-3D Gaussian Splatting — Weekly Literature Update
+🔍 What's New in 3D Gaussian Splatting: Recent Tools & Research
 
-## Paper 1: [Title]
-**Authors**: [Authors list]
-**URL**: [URL]
+🛠️ Synthetic 3DGS from Games is totally underrated
+👤 u/Dung3onlord • r/GaussianSplatting
+🔗 https://reddit.com/...
 
-### Technical Abstract
-[1-2 sentences describing the key contribution]
+Community guide for generating 3DGS from game engines. Covers camera 
+arrays, AI tools, and synthetic video methods. Provides practical insights 
+for developers and researchers.
 
-### Problem Addressed
-[1-2 sentences explaining what problem it solves]
+📄 OceanSplat: Object-aware Gaussian Splatting
+👥 Minseong Kweon; Jinsun Park
+🔗 http://arxiv.org/pdf/...
 
-## Paper 2: [Title]
-...
+OceanSplat tackles underwater 3D reconstruction with trinocular consistency. 
+The approach enforces geometric constraints via inverse warping and depth 
+regularization. Experiments demonstrate 30% fewer artifacts and superior 
+reconstruction quality compared to baseline methods.
 
-## Paper 3: [Title]
-...
+📄 ProFuse: Efficient Cross-View Context Fusion
+👥 Yen-Jen Chiou; Wei-Tse Cheng; Yuan-Fu Yang
+🔗 http://arxiv.org/pdf/...
 
-#ComputerVision #3DGaussianSplatting #MachineLearning #Research
+ProFuse proposes efficient context fusion for open-vocabulary 3D scenes. 
+The approach employs dense correspondence-guided pre-registration with 
+cross-view clustering. Experiments demonstrate 2x faster semantic attachment 
+and state-of-the-art accuracy on benchmark datasets.
+
+#ComputerVision #3DGaussianSplatting #GenAI #Research
 ```
 
 Example JSON output:
